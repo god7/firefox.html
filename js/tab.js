@@ -1,13 +1,10 @@
-define(['js/iframedeck'], function(IframeDeck) {
+define(['js/tabiframedeck'], function(TabIframeDeck) {
 
   "use strict";
 
-  const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 2;
-
   const allTabs = new Map();
 
-  function Tab(iframe) {
+  function Tab(tabIframe) {
     let hbox = document.createElement("hbox");
     hbox.className = "tab";
     hbox.setAttribute("align", "center");
@@ -26,11 +23,11 @@ define(['js/iframedeck'], function(IframeDeck) {
 
     button.onclick = (event) => {
       event.stopPropagation();
-      IframeDeck.remove(iframe);
+      TabIframeDeck.remove(tabIframe);
     };
 
     hbox.onclick = (event) => {
-      IframeDeck.select(iframe);
+      TabIframeDeck.select(tabIframe);
     };
 
     hbox.appendChild(throbber);
@@ -38,22 +35,20 @@ define(['js/iframedeck'], function(IframeDeck) {
     hbox.appendChild(title);
     hbox.appendChild(button);
 
-    this.clearTabData();
-
     this._dom = hbox;
 
-    this.updateDom();
-
-    this._iframe = iframe;
-    this._trackIframe();
+    this._tabIframe = tabIframe;
+    this._trackTabIframe();
 
     document.querySelector(".tabstrip").appendChild(this._dom);
+
+    this.updateDom();
   }
 
   Tab.prototype = {
 
-    get iframe() {
-      return this._iframe;
+    get tabIframe() {
+      return this._tabIframe;
     },
 
     get dom() {
@@ -61,8 +56,8 @@ define(['js/iframedeck'], function(IframeDeck) {
     },
 
     destroy: function() {
-      this._untrackIframe();
-      this._iframe = null;
+      this._untrackTabIframe();
+      this._tabIframe = null;
       this.dom.remove();
     },
 
@@ -74,164 +69,79 @@ define(['js/iframedeck'], function(IframeDeck) {
       this.dom.classList.remove("selected");
     },
 
-    _events: ["mozbrowserasyncscroll", "mozbrowserclose", "mozbrowsercontextmenu",
-              "mozbrowsererror", "mozbrowsericonchange", "mozbrowserloadend",
-              "mozbrowserloadstart", "mozbrowserlocationchange", "mozbrowseropenwindow",
-              "mozbrowsersecuritychange", "mozbrowsershowmodalprompt", "mozbrowsertitlechange",
-              "mozbrowserusernameandpasswordrequired"],
-    _trackIframe: function() {
-      for (let eventName of this._events) {
-        this.iframe.addEventListener(eventName, this);
-      }
-    },
-    _untrackIframe: function() {
-      for (let eventName of this._events) {
-        this.iframe.removeEventListener(eventName, this);
-      }
+    _trackTabIframe: function() {
+      this.updateDom = this.updateDom.bind(this);
+      this.tabIframe.on("dataUpdate", this.updateDom);
     },
 
-    get loading() { return this._loading },
-    get title() { return this._title},
-    get location() { return this._location},
-    get favicon() { return this._favicon},
-    get securityState() { return this._securityState},
-    get securityExtendedValidation() { return this._securityExtendedValidation},
+    _untrackTabIframe: function() {
+      this.tabIframe.off("dataUpdate", this.updateDom);
+    },
 
     updateDom: function() {
-      if (this.loading) {
+      if (this.tabIframe.loading) {
         this.dom.classList.add("loading");
       } else {
         this.dom.classList.remove("loading");
       }
 
-      if (this.title) {
-        this.dom.querySelector(".title").textContent = this.title;
+      if (this.tabIframe.title) {
+        this.dom.querySelector(".title").textContent = this.tabIframe.title;
       } else {
-        if (this.location) {
-          this.dom.querySelector(".title").textContent = this.location;
+        if (this.tabIframe.location) {
+          this.dom.querySelector(".title").textContent = this.tabIframe.location;
         } else {
           this.dom.querySelector(".title").textContent = "New Tab";
         }
       }
 
       let faviconImg = this.dom.querySelector(".favicon");
-      if (this.favicon) {
-        faviconImg.src = this.favicon;
+      if (this.tabIframe.favicon) {
+        faviconImg.src = this.tabIframe.favicon;
       } else {
         faviconImg.removeAttribute("src");
       }
     },
-
-    /* FIXME: this should move into a iframe wrapper */
-    zoom: 1,
-    zoomIn: function() {
-      this.zoom += 0.1;
-      this.zoom = Math.min(MAX_ZOOM, this.zoom);
-      this._applyZoom();
-    },
-    zoomOut: function() {
-      this.zoom -= 0.1;
-      this.zoom = Math.max(MIN_ZOOM, this.zoom);
-      this._applyZoom();
-    },
-    resetZoom: function() {
-      this.zoom = 1;
-      this._applyZoom();
-    },
-    _applyZoom: function() {
-      if (this.hasIframe()) {
-        this.iframe.zoom(this.zoom);
-      }
-    },
-
-    clearTabData: function() {
-      this._loading = false;
-      this._title = "";
-      this._location = "";
-      this._favicon = "";
-      this._securityState = "unsecure";
-      this._securityExtendedValidation = false;
-    },
-
-    userInput: "",
-
-    handleEvent: function(e) {
-      let somethingChanged = true;
-      switch(e.type) {
-        case "mozbrowserloadstart":
-          this.clearTabData();
-          this._loading = true;
-          break;
-        case "mozbrowserloadend":
-          this._loading = false;
-          break;
-        case "mozbrowsertitlechange":
-          this._title = e.detail;
-          break;
-        case "mozbrowserlocationchange":
-          this.userInput = "";
-          this._location = e.detail;
-          break;
-        case "mozbrowsericonchange":
-          this._favicon = e.detail.href;
-          break;
-        case "mozbrowsererror":
-          this._loading = false;
-          break;
-        case "mozbrowseropenwindow":
-          IframeDeck.add({url:e.detail.url});
-          break;
-        case "mozbrowsersecuritychange":
-          this._securityState = e.detail.state;
-          this._securityExtendedValidation = e.detail.extendedValidation;
-          break;
-        default:
-          somethingChanged = false;
-      }
-      if (somethingChanged) {
-        this.updateDom();
-      }
-    },
   };
 
-  IframeDeck.on("add", (event, detail) => {
-    let iframe = detail.iframe;
-    let tab = new Tab(iframe);
-    allTabs.set(iframe, tab);
-    if (iframe == IframeDeck.getSelected()) {
+  TabIframeDeck.on("add", (event, detail) => {
+    let tabIframe = detail.tabIframe;
+    let tab = new Tab(tabIframe);
+    allTabs.set(tabIframe, tab);
+    if (tabIframe == TabIframeDeck.getSelected()) {
       tab.select();
     }
   });
 
-  IframeDeck.on("remove", (event, detail) => {
-    let tab = allTabs.get(detail.iframe);
+  TabIframeDeck.on("remove", (event, detail) => {
+    let tab = allTabs.get(detail.tabIframe);
     if (tab) {
       tab.destroy();
-      allTabs.delete(detail.iframe);
+      allTabs.delete(detail.tabIframe);
     }
   });
 
-  IframeDeck.on("select", (event, detail) => {
-    let tab = allTabs.get(detail.iframe);
+  TabIframeDeck.on("select", (event, detail) => {
+    let tab = allTabs.get(detail.tabIframe);
     if (tab) {
       tab.select();
     }
   });
 
-  IframeDeck.on("unselect", (event, detail) => {
-    let tab = allTabs.get(detail.iframe);
+  TabIframeDeck.on("unselect", (event, detail) => {
+    let tab = allTabs.get(detail.tabIframe);
     if (tab) {
       tab.unselect();
     }
   });
 
-  for (let iframe of IframeDeck) {
-    let tab = new Tab(iframe);
-    allTabs.set(iframe, tab);
+  for (let tabIframe of TabIframeDeck) {
+    let tab = new Tab(tabIframe);
+    allTabs.set(tabIframe, tab);
   }
 
-  let iframe = IframeDeck.getSelected();
-  let tab = allTabs.get(iframe);
+  let tabIframe = TabIframeDeck.getSelected();
+  let tab = allTabs.get(tabIframe);
   tab.select();
 
   /* Build curved tabs */

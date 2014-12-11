@@ -5,17 +5,24 @@ require.config({
 
 define([
   'js/os',
-  'js/iframedeck',
+  'js/tabiframe',
+  'js/tabiframedeck',
   'js/keybindings',
   'js/tab',
+  'js/navbar',
 ], function(
   os,
-  IframeDeck,
+  tabiframe,
+  TabIframeDeck,
   keybindings,
   tab
 ) {
 
   "use strict";
 
-  IframeDeck.add({url: "http://medium.com"});
+  TabIframeDeck.add({url: "http://medium.com"});
+
+  TabIframeDeck.on("selectedTabIframeUpdate", (tabIframe) => {
+    document.title = "Firefox - " + tabIframe.title;
+  });
 })

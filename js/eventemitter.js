@@ -128,7 +128,7 @@ define(function() {
     },
 
     logEvent: function(aEvent, args) {
-      console.log("Event:" + args[0], args);
+      // console.log("Event:" + args[0], args);
     },
   };
 

@@ -1,30 +1,28 @@
-define([
-  'js/iframedeck'
-], function(IframeDeck) {
+define(['js/tabiframedeck'], function(TabIframeDeck) {
 
   "use strict";
 
   const Cmds = {
     goBack: function() {
-      IframeDeck.getSelected().goBack();
+      TabIframeDeck.getSelected().goBack();
     },
     goForward: function() {
-      IframeDeck.getSelected().goForward();
+      TabIframeDeck.getSelected().goForward();
     },
     reload: function() {
-      IframeDeck.getSelected().reload();
+      TabIframeDeck.getSelected().reload();
     },
     stop: function() {
-      IframeDeck.getSelected().stop();
+      TabIframeDeck.getSelected().stop();
     },
     createNewTab: function(url) {
-      IframeDeck.add({url:url,select:true});
+      TabIframeDeck.add({url:url,select:true});
     },
     selectNextTab: function() {
-      IframeDeck.selectNext();
+      TabIframeDeck.selectNext();
     },
     selectPreviousTab: function() {
-      IframeDeck.selectPrevious();
+      TabIframeDeck.selectPrevious();
     },
     focusURLBar: function() {
       document.querySelector(".urlinput").focus();
@@ -35,19 +33,16 @@ define([
       document.querySelector(".searchinput").select();
     },
     closeTab: function() {
-      IframeDeck.remove(IframeDeck.getSelected());
+      TabIframeDeck.remove(TabIframeDeck.getSelected());
     },
     zoomIn: function() {
-      // FIXME:
-      // IframeDeck.getSelected().zoomIn();
+      TabIframeDeck.getSelected().zoomIn();
     },
     zoomOut: function() {
-      // FIXME:
-      // IframeDeck.getSelected().zoomOut();
+      TabIframeDeck.getSelected().zoomOut();
     },
     resetZoom: function() {
-      // FIXME:
-      // IframeDeck.getSelected().resetZoom();
+      TabIframeDeck.getSelected().resetZoom();
     },
   }
 
